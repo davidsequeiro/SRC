@@ -675,7 +675,7 @@ class EDAHelper:
     def run_fase_test_univariante(self):
         self.show_column_number()
         self.test_univariante()  
-        self.log("Análisis univariante completado")  
+          
     
     def show_column_number(self):
         # Selección de columnas numéricas
@@ -860,7 +860,7 @@ class EDAHelper:
 
         # --- Logging ---
         if hasattr(self, "log"):
-            self.log(f"Fase 7 completada: análisis univariante de '{column}'") 
+            self.log(f"Completado Análisis Univariante de '{column}'") 
     """
     def suggest_column_pairs(self):
         print("\n📌 SUGERENCIAS DE VARIABLES BIVARIANTES\n" + "-"*40)
@@ -883,170 +883,194 @@ class EDAHelper:
                 print(f"🔻 {cat_cols[i]} ↔ {cat_cols[j]}")
         self.log("Pares sugeridos para análisis bivariante")
     """
-    def test_bivariante(self):
+    def run_fase_test_bivariante(self):
+        col_x, col_y = self.show_column_all()
+        if col_x is not None and col_y is not None:
+            self.test_bivariante(col_x, col_y)
+            
+
+    def show_column_all(self):
+        print("\n📜 Selección de columnas para análisis bivariante")
         cols = self.df.columns.tolist()
-        while True:
-            col_x = input("\n📥 Ingrese la PRIMERA columna (número o nombre, o 'salir'): ")
-            if col_x.lower() == 'salir':
-                break
+        for idx, col in enumerate(cols):
+            print(f"{idx}: {col}")
+        print("- -" * 30)
 
-            col_y = input("📥 Ingrese la SEGUNDA columna (número o nombre): ")
+        try:
+            sel_x = int(input("Introduce número de la PRIMERA columna: "))
+            sel_y = int(input("Introduce número de la SEGUNDA columna: "))
+            return cols[sel_x], cols[sel_y]
+        except (IndexError, ValueError):
+            print("❌ Selección inválida.")
+            return None, None
 
-            # Convertir a nombres si es índice
-            try:
-                if col_x.isdigit():
-                    col_x = cols[int(col_x)]
-                if col_y.isdigit():
-                    col_y = cols[int(col_y)]
-            except (IndexError, ValueError):
-                print("❌ Índice fuera de rango o no válido.")
-                continue
-
-            if col_x in self.df.columns and col_y in self.df.columns:
-                self.run_test_for_pair(col_x, col_y)
-                self.visualize_bivariate(col_x, col_y)
-            else:
-                print("❌ Columnas no válidas.")
-
-    def run_test_for_pair(self, col_x, col_y):
+    def test_bivariante(self, col_x, col_y):
         tipo_x = self.df[col_x].dtype
         tipo_y = self.df[col_y].dtype
 
-        print(f"\n⚙️ Analizando relación entre '{col_x}' y '{col_y}':\n"+ "-"*80)
+        print(f"\n🔍 Análisis bivariante: '{col_x}' vs '{col_y}'")
+        print("-" * 60)
 
         if np.issubdtype(tipo_x, np.number) and np.issubdtype(tipo_y, np.number):
-            x = self.df[col_x].dropna()
-            y = self.df[col_y].dropna()
-            if len(x) != len(y):
-                df_temp = pd.concat([x, y], axis=1).dropna()
-                x = df_temp[col_x]
-                y = df_temp[col_y]
-            r, p = pearsonr(x, y)
-            print(f"→ Test de correlación de Pearson:")
-            print(f"- Coeficiente r = {r:.3f}, p = {p:.4f}")
-
-            # Interpretación del coeficiente
-            if abs(r) < 0.1:
-                interpretacion = "muy débil o inexistente"
-            elif abs(r) < 0.3:
-                interpretacion = "débil"
-            elif abs(r) < 0.5:
-                interpretacion = "moderada"
-            elif abs(r) < 0.7:
-                interpretacion = "fuerte"
-            else:
-                interpretacion = "muy fuerte"
-
-            print(f"📊 Relación {interpretacion} ({'positiva' if r > 0 else 'negativa' if r < 0 else 'nula'})")
-            if p < 0.05:
-                print("✅ Correlación estadísticamente significativa (p < 0.05)")
-            else:
-                print("❌ No se detecta correlación significativa")
-
+            self._test_num_vs_num(col_x, col_y)
         elif tipo_x in ['object', 'category', 'bool'] and np.issubdtype(tipo_y, np.number):
-            grupos = self.df.groupby(col_x)[col_y].apply(list)
-
-            if len(grupos) == 2:
-                group_names = grupos.index.tolist()
-                group1, group2 = grupos.iloc[0], grupos.iloc[1]
-
-                # Test de Levene
-                stat_levene, p_levene = levene(group1, group2)
-                print(f"→ Test de Levene (igualdad de varianzas): p = {p_levene:.4f}")
-
-                if p_levene > 0.05:
-                    # Varianzas iguales → t-test estándar
-                    stat, p = ttest_ind(group1, group2, equal_var=True)
-                    print(f"✅ Varianzas iguales → t-test estándar: p = {p:.4f}")
-                else:
-                    # Varianzas distintas → Welch
-                    stat, p = ttest_ind(group1, group2, equal_var=False)
-                    print(f"⚠️ Varianzas diferentes → Welch's t-test: p = {p:.4f}")
-
-                if p < 0.05:
-                    print("🔍 Diferencia significativa entre grupos (p < 0.05)")
-                else:
-                    print("✅ No se detecta diferencia significativa (p ≥ 0.05)")
-
-            elif len(grupos) > 2:
-                self.run_anova_or_welch(col_x, col_y)
-            else:
-                print("❌ No hay suficientes grupos para análisis.")
-
+            self._test_cat_vs_num(cat_col=col_x, num_col=col_y)
+        elif np.issubdtype(tipo_x, np.number) and tipo_y in ['object', 'category', 'bool']:
+            self._test_cat_vs_num(cat_col=col_y, num_col=col_x)
         elif tipo_x in ['object', 'category', 'bool'] and tipo_y in ['object', 'category', 'bool']:
-            tabla = pd.crosstab(self.df[col_x], self.df[col_y])
-            chi2, p, dof, expected = chi2_contingency(tabla)
-            print(f"→ Test de Chi-cuadrado entre '{col_x}' y '{col_y}'")
-            print(f"- Chi² = {chi2:.2f}, p = {p:.4f}, grados de libertad = {dof}")
-
-            if expected.min() < 5:
-                print("⚠️ Advertencia: Algunas frecuencias esperadas son < 5. El resultado podría no ser fiable.")
-
-            if p < 0.05:
-                print("✅ Asociación estadísticamente significativa (p < 0.05)")
-            else:
-                print("❌ No se detecta asociación significativa")
-
-            # Tamaño del efecto: Cramér's V
-            n = tabla.sum().sum()
-            phi2 = chi2 / n
-            r, k = tabla.shape
-            cramers_v = np.sqrt(phi2 / min(k - 1, r - 1))
-            print(f"📏 Tamaño del efecto (Cramér's V): {cramers_v:.3f}")
-
+            self._test_cat_vs_cat(col_x, col_y)
         else:
-            print("❌ Combinación de tipos no compatible")
-     
-     # Análisis ANOVA para {num_col} según {cat_col} si len(grupos) > 2     
-    def run_anova_or_welch(self, cat_col, num_col):
-        print(f"\n📊 Análisis ANOVA para {num_col} según {cat_col}")
+            print("❌ Combinación de tipos no soportada para análisis bivariante.")
 
+    def _test_num_vs_num(self, col_x, col_y):
+        x = self.df[col_x].dropna()
+        y = self.df[col_y].dropna()
+        df_temp = pd.concat([x, y], axis=1).dropna()
+        x, y = df_temp[col_x], df_temp[col_y]
+
+        print("\n🧮 Resumen de datos")
+        print(f"- Valores válidos: {len(x)}")
+        if len(x) < 10:
+            print("⚠️ Muestra muy pequeña: resultados poco fiables")
+
+        print("\n🔬 Test de correlación de Pearson")
+        res = StatisticalTests.pearson_correlation(x, y)
+        r = res['statistic']
+        p = res['p_value']
+        print(f"- Coeficiente r = {r:.3f}, p = {p:.4f}")
+
+        if abs(r) < 0.1:
+            intensidad = "muy débil o inexistente"
+        elif abs(r) < 0.3:
+            intensidad = "débil"
+        elif abs(r) < 0.5:
+            intensidad = "moderada"
+        elif abs(r) < 0.7:
+            intensidad = "fuerte"
+        else:
+            intensidad = "muy fuerte"
+        signo = "positiva" if r > 0 else "negativa" if r < 0 else "nula"
+        print(f"📏 Relación {intensidad} ({signo})")
+
+        print("\n💬 Conclusión")
+        print("✅ Correlación significativa" if p < 0.05 else "❌ No significativa")
+
+        print("\n🧠 Interpretación integral")
+        print("La relación entre ambas variables se evalúa mediante correlación lineal de Pearson.")
+        print("Recuerda que no implica causalidad. Si hay asimetría o outliers, la correlación puede distorsionarse.")
+
+        print("\n📌 ¿Por qué es importante?")
+        print("Entender si dos variables numéricas están relacionadas puede apoyar decisiones y modelos.")
+
+        print("\n📊 Visualización Scatter Plot interactivo")
+        fig = go.Figure(data=go.Scatter(x=x, y=y, mode='markers', marker=dict(color='#1f77b4')))
+        fig.update_layout(title=f"Scatter plot: {col_x} vs {col_y}",
+                        xaxis_title=col_x, yaxis_title=col_y)
+        fig.show()
+        # --- Logging ---
+        if hasattr(self, "log"):
+            self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
+            
+    def _test_cat_vs_num(self, cat_col, num_col):
         grupos = self.df.groupby(cat_col)[num_col].apply(list)
+        grupos_validos = [g for g in grupos if len(g) >= 2]
+        grupos_filtrados = grupos[grupos.apply(lambda g: len(g) >= 2)]
 
-        # Test de Levene para igualdad de varianzas
-        stat_levene, p_levene = levene(*grupos)
-        print(f"📏 Test de Levene: p = {p_levene:.4f} → {'✅ Varianzas iguales' if p_levene > 0.05 else '❌ Varianzas diferentes'}")
+        if len(grupos_validos) < 2:
+            print("❌ No hay suficientes grupos válidos (mínimo 2 con ≥2 datos)")
+            return
 
-        if p_levene > 0.05:
-            # Varianzas iguales → ANOVA clásico
-            stat_anova, p_anova = f_oneway(*grupos)
-            print(f"🔬 ANOVA clásico: p = {p_anova:.4f}")
-            interpretacion = "✅ Hay diferencias significativas entre grupos" if p_anova < 0.05 else "❌ No hay diferencias significativas"
+        print(f"\n🧮 Grupos válidos: {len(grupos_validos)}")
+        excluidos = [g for g in grupos.index if len(grupos[g]) < 2]
+        if excluidos:
+            print(f"⚠️ Grupos excluidos por tamaño insuficiente: {excluidos}")
+
+        print(f"\n🔬 Test de Levene para igualdad de varianzas")
+        res_levene = StatisticalTests.levene_test(*grupos_validos)
+        p_levene = res_levene['p_value']
+        print(f"- p = {p_levene:.4f} → {res_levene['conclusion']}")
+
+        if len(grupos_validos) == 2:
+            g1, g2 = grupos_validos[0], grupos_validos[1]
+            if p_levene > 0.05:
+                res = StatisticalTests.ttest_independent(g1, g2, equal_var=True)
+            else:
+                res = StatisticalTests.ttest_independent(g1, g2, equal_var=False)
+            print(f"→ {res['test_name']}: p = {res['p_value']:.4f}")
+            print("🔍 Conclusión:", res['conclusion'])
         else:
-            # Varianzas diferentes → Welch ANOVA
-            df_test = self.df[[cat_col, num_col]].dropna()
-            df_test[cat_col] = df_test[cat_col].astype(str)  # statsmodels requiere categorías tipo str
-            res = anova_oneway(df_test[num_col], groups=df_test[cat_col], use_var='unequal')
-            p_anova = res.pvalue
-            print(f"🔬 Welch ANOVA: p = {p_anova:.4f}")
-            interpretacion = "✅ Hay diferencias significativas entre grupos (Welch)" if p_anova < 0.05 else "❌ No hay diferencias significativas (Welch)"
+            if p_levene > 0.05:
+                res = StatisticalTests.anova_classic(grupos_validos)
+            else:
+                res = StatisticalTests.welch_anova(grupos_validos)
+            print(f"→ {res['test_name']}: p = {res['p_value']:.4f}")
+            print("🔍 Conclusión:", res['conclusion'])
 
-        print(f"🧠 Interpretación: {interpretacion}")
-        
-        
-    def visualize_bivariate(self, col_x, col_y):
-        print(f"\n📊 Gráfico para {col_x} ↔ {col_y}")
-        if np.issubdtype(self.df[col_x].dtype, np.number) and np.issubdtype(self.df[col_y].dtype, np.number):
-            sns.scatterplot(x=self.df[col_x], y=self.df[col_y])
-            plt.title(f"Relación entre {col_x} y {col_y}")
-        elif self.df[col_x].dtype in ['object', 'category', 'bool'] and np.issubdtype(self.df[col_y].dtype, np.number):
-            sns.boxplot(x=self.df[col_x], y=self.df[col_y])
-            plt.title(f"{col_y} por {col_x}")
-        elif self.df[col_x].dtype in ['object', 'category', 'bool'] and self.df[col_y].dtype in ['object', 'category', 'bool']:
-            tabla = pd.crosstab(self.df[col_x], self.df[col_y])
-            tabla.plot(kind='bar', stacked=True)
-            plt.title(f"{col_x} vs {col_y}")
-        plt.tight_layout()
-        plt.show()
-        self.log("Visualización bivariante generada")
-        
-        
-        
-        """
+        print("\n🧠 Interpretación integral")
+        print("Se evaluaron diferencias entre grupos usando tests adecuados según homocedasticidad.")
+        print("Los grupos con menos de 2 datos fueron excluidos del análisis.")
+
+        print("\n📌 ¿Por qué es importante?")
+        print("Comprobar si los valores de una variable numérica difieren según categorías ayuda a descubrir patrones.")
+
+        print("\n📊 Visualización Boxplot interactivo")
+        fig = go.Figure()
+        for grupo, datos in grupos_filtrados.items():
+            fig.add_trace(go.Box(y=datos, name=str(grupo)))
+        fig.update_layout(title=f"Boxplot de {num_col} por {cat_col}",
+                        yaxis_title=num_col, xaxis_title=cat_col)
+        fig.show()
+        # --- Logging ---
+        if hasattr(self, "log"):
+            self.log(f"Completado Análisis Bivariante de '{cat_col}' y '{num_col}'")
+            
+    def _test_cat_vs_cat(self, col_x, col_y):
+        tabla = pd.crosstab(self.df[col_x], self.df[col_y])
+        print(f"\n🧮 Tabla de contingencia de '{col_x}' vs '{col_y}'")
+        print(f"- Tamaño total: {tabla.values.sum()}")
+
+        chi2_res = StatisticalTests.chi2_test(tabla)
+        p = chi2_res['p_value']
+
+        print("\n🔬 Test Chi-cuadrado")
+        print(f"- Chi² = {chi2_res['statistic']:.2f}, p = {p:.4f}")
+        print("🔍 Conclusión:", chi2_res['conclusion'])
+
+        expected = chi2_contingency(tabla)[3]
+        if (expected < 5).sum() / expected.size > 0.2:
+            print("⚠️ Más del 20% de celdas tienen frecuencia esperada < 5 → resultado poco fiable")
+
+        # Tamaño del efecto (Cramér's V)
+        n = tabla.values.sum()
+        phi2 = chi2_res['statistic'] / n
+        r, k = tabla.shape
+        cramers_v = np.sqrt(phi2 / min(k - 1, r - 1))
+        print(f"📏 Tamaño del efecto (Cramér's V): {cramers_v:.3f}")
+
+        print("\n🧠 Interpretación integral")
+        print("Este test evalúa si existe asociación significativa entre dos variables categóricas.")
+        print("Cramér's V ayuda a interpretar la fuerza de la relación.")
+
+        print("\n📌 ¿Por qué es importante?")
+        print("Entender si dos variables categóricas están relacionadas puede revelar patrones o dependencias.")
+
+        print("\n📊 Visualización Heatmap interactivo de frecuencias")
+        fig = go.Figure(data=go.Heatmap(
+            z=tabla.values,
+            x=tabla.columns.astype(str),
+            y=tabla.index.astype(str),
+            colorscale='Viridis'))
+        fig.update_layout(title=f"Heatmap de contingencia: {col_x} vs {col_y}",
+                        xaxis_title=col_y, yaxis_title=col_x)
+        fig.show()
+        # --- Logging ---
+        if hasattr(self, "log"):
+            self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
+"""
 Siguientes mejoras recomendadas:
 0. poder analizar dos columnas ( por ejemplo -> ventas por marca)
 
-2. Fase 8 (Bivariante Avanzado y A/B Testing)
+2. Fase A/B Testing)
 Mejorar grafico
 
 Mostrar resultado del test de Levene para varianzas.
@@ -1061,4 +1085,4 @@ Añadir una conclusión interpretativa automática después de cada test.
 
 3. Exportar informe (opcional)
 Exportar a .txt o .pdf el log y/o gráficos.
-        """
+"""

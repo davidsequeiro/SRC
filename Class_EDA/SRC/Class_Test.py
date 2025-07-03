@@ -12,55 +12,68 @@ from scipy.stats import (
 from statsmodels.stats.oneway import anova_oneway
 import statsmodels.api as sm
 
+"""
+Implementa una amplia gama de tests estadísticos comunes y avanzados para facilitar
+el análisis univariante, bivariante y tests de hipótesis. Cada test está implementado
+como método estático que recibe los datos correspondientes y devuelve un diccionario
+estructurado con los resultados y una interpretación básica.
+
+Categorías de tests incluidos:
+
+1. Tests de normalidad (evaluar si una muestra sigue una distribución normal):
+    - shapiro_wilk: Test clásico para muestras pequeñas a medianas.
+    - anderson_darling: Test basado en distancias entre distribuciones.
+    - kolmogorov_smirnov: Test general para comparar con una distribución teórica.
+    - dagostino_k2 (normaltest): Test combinado basado en skewness y curtosis.
+    - jarque_bera: Test basado en skewness y curtosis para normalidad.
+
+2. Tests de homocedasticidad (comprobar igualdad de varianzas entre grupos):
+    - levene: Test robusto para igualdad de varianzas.
+    - bartlett: Test clásico, sensible a desviaciones de normalidad.
+    - brown_forsythe: Variante robusta basada en medianas.
+
+3. Tests paramétricos para comparación de medias o grupos:
+    - ttest_ind: Test t de Student para dos grupos con varianzas iguales.
+    - ttest_ind_welch: Variante para varianzas desiguales (Welch).
+    - anova_oneway: ANOVA clásico para más de dos grupos.
+    - welch_anova: ANOVA de Welch para varianzas desiguales, usando statsmodels.
+
+4. Tests no paramétricos para comparación de grupos:
+    - mannwhitneyu: Test de rango para dos grupos independientes.
+    - kruskal: ANOVA no paramétrico para más de dos grupos.
+    - wilcoxon: Test para muestras pareadas no paramétricas.
+
+5. Tests para variables categóricas (asociación e independencia):
+    - chi2_contingency: Test Chi-cuadrado para tablas de contingencia.
+    - fisher_exact: Test exacto para tablas 2x2 pequeñas.
+    - mcnemar: Test para tablas 2x2 dependientes (pares).
+
+6. Tests de correlación (medición de asociación entre variables):
+    - pearsonr: Correlación lineal paramétrica.
+    - spearmanr: Correlación monotónica no paramétrica.
+    - kendalltau: Correlación ordinal no paramétrica.
+
+7. Otros tests estadísticos útiles:
+    - durbin_watson: Test para autocorrelación de residuos en modelos.
+    - ks_2sample: Test Kolmogorov-Smirnov para comparar dos muestras.
+    - skewtest: Test para simetría de la distribución.
+    - kurtosistest: Test para curtosis (apuntamiento de la distribución).
+
+Uso:
+    - Los métodos se llaman como métodos estáticos, pasando los datos adecuados.
+    - Cada método retorna un diccionario con claves:
+        * test_name: nombre del test
+        * statistic: valor estadístico calculado
+        * p_value: valor p del test
+        * result: interpretación básica ("Rechazar H0" / "No rechazar H0")
+        * conclusion: explicación sencilla del resultado
+        * recommendation: sugerencias o contexto para interpretación y uso
+
+Esta clase es útil para automatizar análisis estadísticos en fases univariantes,
+bivariantes y para tests de hipótesis en procesos de análisis exploratorio de datos.
+"""
+
 class StatisticalTests:
-    """
-    Clase con implementación de tests estadísticos comunes y avanzados para análisis univariante,
-    bivariante y tests de hipótesis:
-
-    Tests de normalidad:
-        - shapiro_wilk
-        - anderson_darling
-        - kolmogorov_smirnov
-
-    Tests de homocedasticidad:
-        - levene
-        - bartlett
-        - brown_forsythe
-
-    Tests paramétricos para dos grupos o más:
-        - ttest_ind (Student y Welch)
-        - anova_oneway (ANOVA clásico)
-        - welch_anova (ANOVA de Welch usando statsmodels)
-
-    Tests no paramétricos para dos grupos o más:
-        - mannwhitneyu
-        - kruskal
-        - wilcoxon (muestras pareadas)
-
-    Tests para variables categóricas:
-        - chi2_contingency (Chi-cuadrado)
-        - fisher_exact (para tablas 2x2 pequeñas)
-        - mcnemar (para tablas 2x2 dependientes)
-
-    Tests de correlación:
-        - pearsonr (correlación lineal paramétrica)
-        - spearmanr (correlación monotónica no paramétrica)
-        - kendalltau (correlación ordinal no paramétrica)
-
-    Otros tests estadísticos:
-        - durbin_watson (autocorrelación residuos de modelos)
-        - ks_2sample (Kolmogorov-Smirnov para dos muestras)
-
-    Uso:
-        Llamar al método estático correspondiente pasando los datos como argumentos.
-        Cada método devuelve un diccionario con los campos:
-            - test_name: nombre del test
-            - statistic: valor estadístico calculado
-            - p_value: valor p del test
-            - result: "Rechazar H0" o "No rechazar H0"
-            - conclusion: interpretación sencilla del resultado
-            - recommendation: recomendaciones o contexto para el test
-    """
     
     ALPHA_DEFAULT = 0.05
 
