@@ -646,7 +646,7 @@ class EDAHelper:
                 if outliers > 0:
                     print(f"- ⚠️ Outliers detectados: {outliers} ({porcentaje:.1f}%) → Posibles valores extremos")
                     if porcentaje > 10:
-                        print("  🚨 Proporción alta de outliers. Esto puede afectar significativamente la media y la desviación estándar.")
+                        print("🚨 Proporción alta de outliers. Esto puede afectar significativamente la media y la desviación estándar.")
 
                 # Desviación estándar y media
                 std = col_data.std()
@@ -736,7 +736,7 @@ class EDAHelper:
         q3 = series.quantile(0.75)
         iqr = q3 - q1
         outliers = ((series < (q1 - 1.5 * iqr)) | (series > (q3 + 1.5 * iqr))).sum()
-        perc_outliers = (n_outliers / len(series)) * 100
+        perc_outliers = (outliers / len(series)) * 100
         
             # --- Tests de normalidad adaptados según tamaño de muestra ---
         if 3 <= len(series) <= 5000:
@@ -797,9 +797,9 @@ class EDAHelper:
         print(f"- Máximo: {maximo:.2f}")
         print(f"- Rango: {rango:.2f}")
         print(f"- IQR: {iqr:.2f}")
-        print(f"- Outliers detectados: {n_outliers} ({perc_outliers:.1f}%)")
+        print(f"- Outliers detectados: {outliers} ({perc_outliers:.1f}%)")
         if perc_outliers > 10:
-            print("⚠️ Alerta: proporción alta de outliers. Esto puede afectar la media y la desviación estándar.")
+            print("🚨⚠️ Alerta: proporción alta de outliers. Esto puede afectar la media y la desviación estándar.")
     
         # Tests de normalidad
         print("\n🔬📈 Test de normalidad")
