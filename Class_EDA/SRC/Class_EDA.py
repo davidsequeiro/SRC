@@ -3,6 +3,7 @@
 # EDAHelper: Exploración de Datos Automatizada y Modular
 import os
 from IPython.display import display, HTML
+from IPython.display import display, Markdown
 
 # Librerias ETL
 import pandas as pd
@@ -51,20 +52,6 @@ class EDAHelper:
             print(log)
         self.logs = []
 
-    def run_fase0_Datos_Crudos(self):
-        # self.load_data() (PASO INCLUIDO EN EL JUPYTER)
-        self.format_column_names()
-        self.show_dataframe()
-        
-    # --- FASE 1: Análisis Preliminar ---
-    def run_fase1_preliminar(self):
-        self.show_info()
-        self.group_by_dtype()
-        self.nulls_and_duplicates()
-        self.detect_booleans()
-        #self.detect_date_columns()
-        self.print_logs()
-
     def load_data(self):
         extension = os.path.splitext(self.file_path)[1].lower()
         try:
@@ -80,6 +67,12 @@ class EDAHelper:
         except Exception as e:
             print(f"❌ Error al cargar archivo: {e}")
             
+            
+    def run_fase0_Datos_Crudos(self):
+        # self.load_data() (PASO INCLUIDO EN EL JUPYTER)
+        self.format_column_names()
+        self.show_dataframe()
+        
     def format_column_names(self):
         print("📌 FORMATEAR TITULOS COLUMNAS\n"+ "-"*40)
         self.df.columns = [col.strip().lower().replace(" ", "_").capitalize() for col in self.df.columns]
@@ -92,11 +85,24 @@ class EDAHelper:
         print(self.df.head())
         self.log("DataSet Muestra")
         
+        
+    # --- FASE 1: Análisis Preliminar ---
+    def run_fase1_preliminar(self):
+        self.show_info()
+        self.group_by_dtype()
+        self.nulls_and_duplicates()
+        self.detect_booleans()
+        #self.detect_date_columns()
+        self.print_logs()
+
+        
     def show_info(self):
         print(f"\n📐 Tamaño del DataFrame:\n Filas: {self.df.shape[0]}\n Columnas: {self.df.shape[1]}")
+        display(Markdown("---"))
         print("\n📌 Info DataSet\n"+ "-"*40)
         self.df.info() 
         self.log("DataSet Info")
+        display(Markdown("---"))
         
     def group_by_dtype(self):
         print("\n📌 COLUMNAS AGRUPADAS POR TIPO DE DATO\n"+ "-"*40)
@@ -104,6 +110,7 @@ class EDAHelper:
         for dtype, cols in groups.items():
             print(f"\n{dtype}: {list(cols)}")
         self.log("Columnas Agrupadas")
+        display(Markdown("---"))
         
     def nulls_and_duplicates(self):
         print("\n📌 COMPROBACIÓN DE VALORES NULOS, DUPLICADOS, UNICOS POR COLUMNA\n" + "-"*40)
@@ -145,7 +152,8 @@ class EDAHelper:
 
         print("\n🔍 Reporte Completo:")
         print(full_df)
-
+        display(Markdown("---"))
+        
         # --- MENSAJES DE INTERPRETACIÓN ---
         print("\n📋 Resumen de interpretación:")
         
@@ -689,6 +697,7 @@ class EDAHelper:
         for idx, col in enumerate(numeric_cols):
             print(f"{idx}: {col}")
         print("- -"*30)
+        display(Markdown("---"))
         try:
             sel = int(input("\nIntroduce el número de la columna: "))
             self.columna_univariante_seleccionada = numeric_cols[sel]
@@ -868,14 +877,15 @@ class EDAHelper:
         col_x, col_y = self.show_column_all()
         if col_x is not None and col_y is not None:
             self.test_bivariante(col_x, col_y)
-        self.print_logs()    
+        self.print_logs() 
+           
     def show_column_all(self):
         print("\n📜 Selección de columnas para análisis bivariante")
         cols = self.df.columns.tolist()
         for idx, col in enumerate(cols):
             print(f"{idx}: {col}")
         print("- -" * 30)
-
+        display(Markdown("---"))
         try:
             sel_x = int(input("Introduce número de la PRIMERA columna: "))
             sel_y = int(input("Introduce número de la SEGUNDA columna: "))
