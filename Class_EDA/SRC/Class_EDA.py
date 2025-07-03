@@ -20,7 +20,7 @@ import plotly.express as px
 from datetime import datetime
 
 #Archivo auxiliar de Test estadisticos
-from Class_Test import StatisticalTests
+#from Class_Test import StatisticalTests
 
 #Libreria Estadisticas
 from scipy import stats
@@ -685,10 +685,10 @@ class EDAHelper:
             print("⚠️ No hay columnas numéricas continuas en el DataFrame.")
             return
 
-        print("🔢 Selecciona la variable numérica que deseas analizar:\n")
+        print("📜 ÍNDICES DE COLUMNAS DISPONIBLES:")
         for idx, col in enumerate(numeric_cols):
             print(f"{idx}: {col}")
-
+        print("- -"*30)
         try:
             sel = int(input("\nIntroduce el número de la columna: "))
             self.columna_univariante_seleccionada = numeric_cols[sel]
@@ -736,7 +736,7 @@ class EDAHelper:
         normal_text = "✅ Distribución aproximadamente normal" if shapiro_p > 0.05 else "❌ No distribución normal"
 
         # Output textual estructurado
-        print(f"\n🔍 Análisis univariante: columna '{column}'\n")
+        print(f"\n🔍 Análisis univariante: columna '{column}'\n"+ "-"*60)
         print("🧮 Resumen de métricas")
         print(f"- N (valores válidos): {valid_n} → Muestra {'amplia' if valid_n > 100 else 'pequeña'}")
         print(f"- N (nulos): {null_n} → {'Sin' if null_n == 0 else f'{round(100*null_n/total_n,1)}% de'} datos faltantes")
@@ -844,7 +844,8 @@ class EDAHelper:
     def show_column_indices(self):
         print("\n📜 ÍNDICES DE COLUMNAS DISPONIBLES")
         for i, col in enumerate(self.df.columns):
-            print(f"[{i}] {col} — tipo: {self.df[col].dtype}") 
+            print(f"[{i}] {col} — tipo: {self.df[col].dtype}")
+        print("- -"*30) 
     """
     def suggest_column_pairs(self):
         print("\n📌 SUGERENCIAS DE VARIABLES BIVARIANTES\n" + "-"*40)
@@ -896,7 +897,7 @@ class EDAHelper:
         tipo_x = self.df[col_x].dtype
         tipo_y = self.df[col_y].dtype
 
-        print(f"\n⚙️ Analizando relación entre '{col_x}' y '{col_y}':")
+        print(f"\n⚙️ Analizando relación entre '{col_x}' y '{col_y}':\n"+ "-"*80)
 
         if np.issubdtype(tipo_x, np.number) and np.issubdtype(tipo_y, np.number):
             x = self.df[col_x].dropna()
