@@ -675,7 +675,7 @@ class EDAHelper:
     def run_fase_test_univariante(self):
         self.show_column_number()
         self.test_univariante()  
-          
+        self.print_logs()  
     
     def show_column_number(self):
         # Selección de columnas numéricas
@@ -861,34 +861,14 @@ class EDAHelper:
         # --- Logging ---
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Univariante de '{column}'") 
-    """
-    def suggest_column_pairs(self):
-        print("\n📌 SUGERENCIAS DE VARIABLES BIVARIANTES\n" + "-"*40)
-        num_cols = self.df.select_dtypes(include='number').columns.tolist()
-        cat_cols = self.df.select_dtypes(include=['object', 'category']).columns.tolist()
-
-        print("\nNuméricas vs Numéricas:")
-        for i in range(len(num_cols)):
-            for j in range(i+1, len(num_cols)):
-                print(f"🔹 {num_cols[i]} ↔ {num_cols[j]}")
-
-        print("\nCategóricas vs Numéricas:")
-        for cat in cat_cols:
-            for num in num_cols:
-                print(f"🔸 {cat} ↔ {num}")
-
-        print("\nCategóricas vs Categóricas:")
-        for i in range(len(cat_cols)):
-            for j in range(i+1, len(cat_cols)):
-                print(f"🔻 {cat_cols[i]} ↔ {cat_cols[j]}")
-        self.log("Pares sugeridos para análisis bivariante")
-    """
+    
+    
+    
     def run_fase_test_bivariante(self):
         col_x, col_y = self.show_column_all()
         if col_x is not None and col_y is not None:
             self.test_bivariante(col_x, col_y)
-            
-
+        self.print_logs()    
     def show_column_all(self):
         print("\n📜 Selección de columnas para análisis bivariante")
         cols = self.df.columns.tolist()
@@ -903,7 +883,7 @@ class EDAHelper:
         except (IndexError, ValueError):
             print("❌ Selección inválida.")
             return None, None
-
+    
     def test_bivariante(self, col_x, col_y):
         tipo_x = self.df[col_x].dtype
         tipo_y = self.df[col_y].dtype
@@ -964,13 +944,22 @@ class EDAHelper:
 
         print("\n📊 Visualización Scatter Plot interactivo")
         fig = go.Figure(data=go.Scatter(x=x, y=y, mode='markers', marker=dict(color='#1f77b4')))
-        fig.update_layout(title=f"Scatter plot: {col_x} vs {col_y}",
-                        xaxis_title=col_x, yaxis_title=col_y)
+        fig.update_layout(title=f"Scatter plot: {col_x} vs {col_y}", xaxis_title=col_x, yaxis_title=col_y)
         fig.show()
-        # --- Logging ---
+
+        print("\n📋 Resumen del test aplicado:")
+        resumen_df = pd.DataFrame([{
+            "Test": res['test_name'],
+            "p-valor": round(res['p_value'], 4),
+            "Significativo": "✅" if res['p_value'] < 0.05 else "❌",
+            "Coef. Pearson r": round(res['statistic'], 3),
+            "Recomendación": res['recommendation']
+        }])
+        display(resumen_df(index=False))
+
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
-            
+    
     def _test_cat_vs_num(self, cat_col, num_col):
         grupos = self.df.groupby(cat_col)[num_col].apply(list)
         grupos_validos = [g for g in grupos if len(g) >= 2]
@@ -985,26 +974,54 @@ class EDAHelper:
         if excluidos:
             print(f"⚠️ Grupos excluidos por tamaño insuficiente: {excluidos}")
 
+        
+
+        # Test de Levene
         print(f"\n🔬 Test de Levene para igualdad de varianzas")
         res_levene = StatisticalTests.levene_test(*grupos_validos)
         p_levene = res_levene['p_value']
         print(f"- p = {p_levene:.4f} → {res_levene['conclusion']}")
 
+        # Elección del test
         if len(grupos_validos) == 2:
             g1, g2 = grupos_validos[0], grupos_validos[1]
             if p_levene > 0.05:
-                res = StatisticalTests.ttest_independent(g1, g2, equal_var=True)
+                res_test = StatisticalTests.ttest_independent(g1, g2, equal_var=True)
             else:
-                res = StatisticalTests.ttest_independent(g1, g2, equal_var=False)
-            print(f"→ {res['test_name']}: p = {res['p_value']:.4f}")
-            print("🔍 Conclusión:", res['conclusion'])
+                res_test = StatisticalTests.ttest_independent(g1, g2, equal_var=False)
+
+            # Tamaño del efecto: Cohen's d
+            d = (np.mean(g1) - np.mean(g2)) / np.sqrt((np.std(g1, ddof=1)**2 + np.std(g2, ddof=1)**2) / 2)
+            print(f"→ {res_test['test_name']}: p = {res_test['p_value']:.4f}")
+            print("🔍 Conclusión:", res_test['conclusion'])
+            print(f"🎯 Tamaño del efecto (Cohen's d): {d:.3f}")
+
+            # Si p > 0.05, test no paramétrico
+            if res_test['p_value'] > 0.05:
+                print("\n🧪 Validación con test no paramétrico (Mann-Whitney)")
+                res_nonparam = StatisticalTests.mann_whitney_u_test(g1, g2)
+                print(f"→ {res_nonparam['test_name']}: p = {res_nonparam['p_value']:.4f}")
+                print("🔍 Conclusión:", res_nonparam['conclusion'])
+
         else:
             if p_levene > 0.05:
-                res = StatisticalTests.anova_classic(grupos_validos)
+                res_test = StatisticalTests.anova_classic(grupos_validos)
+                eta_sq = res_test['statistic'] * (len(self.df) - 1) / (res_test['statistic'] * (len(self.df) - 1) + len(grupos_validos))
             else:
-                res = StatisticalTests.welch_anova(grupos_validos)
-            print(f"→ {res['test_name']}: p = {res['p_value']:.4f}")
-            print("🔍 Conclusión:", res['conclusion'])
+                res_test = StatisticalTests.welch_anova(grupos_validos)
+                eta_sq = None  # Welch no da eta² directamente
+
+            print(f"→ {res_test['test_name']}: p = {res_test['p_value']:.4f}")
+            print("🔍 Conclusión:", res_test['conclusion'])
+            if eta_sq is not None:
+                print(f"🎯 Tamaño del efecto (eta²): {eta_sq:.3f}")
+
+            # Si p > 0.05, test no paramétrico
+            if res_test['p_value'] > 0.05:
+                print("\n🧪 Validación con test no paramétrico (Kruskal-Wallis)")
+                res_nonparam = StatisticalTests.kruskal_wallis_test(grupos_validos)
+                print(f"→ {res_nonparam['test_name']}: p = {res_nonparam['p_value']:.4f}")
+                print("🔍 Conclusión:", res_nonparam['conclusion'])
 
         print("\n🧠 Interpretación integral")
         print("Se evaluaron diferencias entre grupos usando tests adecuados según homocedasticidad.")
@@ -1013,17 +1030,44 @@ class EDAHelper:
         print("\n📌 ¿Por qué es importante?")
         print("Comprobar si los valores de una variable numérica difieren según categorías ayuda a descubrir patrones.")
 
-        print("\n📊 Visualización Boxplot interactivo")
-        fig = go.Figure()
-        for grupo, datos in grupos_filtrados.items():
-            fig.add_trace(go.Box(y=datos, name=str(grupo)))
-        fig.update_layout(title=f"Boxplot de {num_col} por {cat_col}",
-                        yaxis_title=num_col, xaxis_title=cat_col)
+        
+            
+        print("\n📊 Visualización Boxplot + Stripplot interactivos")
+        df_viz = self.df[[cat_col, num_col]].dropna()
+        fig = px.strip(df_viz, x=cat_col, y=num_col, stripmode='overlay', color=cat_col,
+                    title=f"Distribución de {num_col} por grupos de {cat_col}",
+                    color_discrete_sequence=px.colors.qualitative.Set2)
+        fig.update_traces(jitter=0.35, marker=dict(opacity=0.5, size=5), selector=dict(type='scatter'))
+        fig.update_layout(yaxis_title=num_col, xaxis_title=cat_col)
         fig.show()
-        # --- Logging ---
+
+        print("\n📋 Resumen del test aplicado:")
+        resumen_data = {
+            "Test": res_test['test_name'],
+            "p-valor": round(res_test['p_value'], 4),
+            "Significativo": "✅" if res_test['p_value'] < 0.05 else "❌",
+            "Tamaño del efecto": round(d if len(grupos_validos) == 2 else (eta_sq if eta_sq else 0), 3),
+            "Recomendación": res_test['recommendation']
+        }
+        if 'res_nonparam' in locals():
+            resumen_data["Test alternativo"] = res_nonparam['test_name']
+            resumen_data["p-alt"] = round(res_nonparam['p_value'], 4)
+        resumen_df = pd.DataFrame([resumen_data])
+        display(resumen_df(index=False))
+
+        
+        # Outliers por grupo
+        print("\n🔎 Outliers por grupo (basado en IQR):")
+        for grupo, datos in grupos_filtrados.items():
+            q1 = np.percentile(datos, 25)
+            q3 = np.percentile(datos, 75)
+            iqr = q3 - q1
+            outliers = [x for x in datos if x < q1 - 1.5 * iqr or x > q3 + 1.5 * iqr]
+            print(f"- {grupo}: {len(outliers)} outliers")
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{cat_col}' y '{num_col}'")
-            
+    
+    
     def _test_cat_vs_cat(self, col_x, col_y):
         tabla = pd.crosstab(self.df[col_x], self.df[col_y])
         print(f"\n🧮 Tabla de contingencia de '{col_x}' vs '{col_y}'")
@@ -1031,21 +1075,22 @@ class EDAHelper:
 
         chi2_res = StatisticalTests.chi2_test(tabla)
         p = chi2_res['p_value']
+        stat = chi2_res['statistic']
 
         print("\n🔬 Test Chi-cuadrado")
-        print(f"- Chi² = {chi2_res['statistic']:.2f}, p = {p:.4f}")
+        print(f"- Chi² = {stat:.2f}, p = {p:.4f}")
         print("🔍 Conclusión:", chi2_res['conclusion'])
 
+        from scipy.stats import chi2_contingency
         expected = chi2_contingency(tabla)[3]
         if (expected < 5).sum() / expected.size > 0.2:
             print("⚠️ Más del 20% de celdas tienen frecuencia esperada < 5 → resultado poco fiable")
 
-        # Tamaño del efecto (Cramér's V)
         n = tabla.values.sum()
-        phi2 = chi2_res['statistic'] / n
+        phi2 = stat / n
         r, k = tabla.shape
         cramers_v = np.sqrt(phi2 / min(k - 1, r - 1))
-        print(f"📏 Tamaño del efecto (Cramér's V): {cramers_v:.3f}")
+        print(f"🎯 Tamaño del efecto (Cramér's V): {cramers_v:.3f}")
 
         print("\n🧠 Interpretación integral")
         print("Este test evalúa si existe asociación significativa entre dos variables categóricas.")
@@ -1063,10 +1108,22 @@ class EDAHelper:
         fig.update_layout(title=f"Heatmap de contingencia: {col_x} vs {col_y}",
                         xaxis_title=col_y, yaxis_title=col_x)
         fig.show()
-        # --- Logging ---
+
+        print("\n📋 Resumen del test aplicado:")
+        resumen_df = pd.DataFrame([{
+            "Test": chi2_res['test_name'],
+            "p-valor": round(chi2_res['p_value'], 4),
+            "Significativo": "✅" if chi2_res['p_value'] < 0.05 else "❌",
+            "Tamaño del efecto": round(cramers_v, 3),
+            "Recomendación": chi2_res['recommendation']
+        }])
+        display(resumen_df(index=False))
+
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
-"""
+
+
+"""    
 Siguientes mejoras recomendadas:
 0. poder analizar dos columnas ( por ejemplo -> ventas por marca)
 
@@ -1074,14 +1131,6 @@ Siguientes mejoras recomendadas:
 Mejorar grafico
 
 Mostrar resultado del test de Levene para varianzas.
-
-
-
-
-
-Añadir una conclusión interpretativa automática después de cada test.
-
-
 
 3. Exportar informe (opcional)
 Exportar a .txt o .pdf el log y/o gráficos.
