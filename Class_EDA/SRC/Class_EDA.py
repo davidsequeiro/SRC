@@ -22,7 +22,7 @@ from datetime import datetime
 #Libreria Estadisticas
 from scipy import stats
 from scipy.stats import gaussian_kde
-from scipy.stats import chi2_contingency, ttest_ind, mannwhitneyu, f_oneway, levene, shapiro, pearsonr, spearmanr, iqr, chi2_contingency
+from scipy.stats import gaussian_kde, entropy, chi2_contingency, ttest_ind, mannwhitneyu, f_oneway, levene, shapiro, pearsonr, spearmanr, iqr, chi2_contingency
 from itertools import zip_longest
 from statsmodels.stats.oneway import anova_oneway
 import statsmodels.api as sm
@@ -102,44 +102,84 @@ class EDAHelper:
         self.log("Columnas Agrupadas")
         
     def nulls_and_duplicates(self):
-        # Comprobar Nulos
-        print("\n📌COMPROBACION DE VALORES NULOS\n"+ "-"*40)
+        print("\n📌 COMPROBACIÓN DE VALORES NULOS, DUPLICADOS, UNICOS POR COLUMNA\n" + "-"*40)
+        # --- NULOS ---
         nulls = self.df.isnull().sum()
-        percent = (nulls / len(self.df)) * 100
-        nulls_df = pd.DataFrame({'nulos': nulls, 'porcentaje': percent.round(2).astype(str) + '%'})
-        print("❗ Nulos por columna:")
-        print(nulls_df)
-        self.nulls_df = self.df[self.df.isnull().any(axis=1)]
-        print(f"\n❗ Se encontraron {self.nulls_df.shape[0]} ({self.nulls_df.shape[1]}%) filas con valores nulos")
-        self.log(f"Valores nulos")
+        percent_nulls = (nulls / len(self.df)) * 100
+        nulls_df = pd.DataFrame({
+            'Nulos': nulls,
+            '% Nulos': percent_nulls.round(2).astype(str) + '%'
+        })
         
-        # Duplicados por columna
-        print("\n📌 COMPROBACION DE VALORES DUPLICADOS POR COLUMNA\n"+ "-"*40)
-        num_duplicates = self.df.duplicated().sum()
-        perc_duplicates = (num_duplicates / len(self.df)) * 100
-        self.duplicated_df = self.df[self.df.duplicated()]
-                
+        # --- DUPLICADOS ---
         column_dupes = {}
         for col in self.df.columns:
             dupes = self.df[col].duplicated(keep=False).sum()
             perc = (dupes / len(self.df)) * 100
-            column_dupes[col] = (dupes, round(perc,2))
+            column_dupes[col] = (dupes, round(perc, 2))
+            
+        column_dupes_df = pd.DataFrame.from_dict(column_dupes, orient='index', columns=['Duplicados', '% Duplicados'])
 
-        column_dupes_df = pd.DataFrame.from_dict(column_dupes, orient='index', columns=['duplicados', 'porcentaje'])
-                
-        print("🔁 Duplicados por columna:")
-        print(column_dupes_df)
-        print(f"\n🔁 Se encontraron {num_duplicates} ({perc_duplicates:.2f}%) filas duplicadas")
-        self.log("Duplicados por columna")
+        # --- VALORES ÚNICOS ---
+        unique_vals = self.df.nunique()
+        unique_percentage = (unique_vals / len(self.df)) * 100
+        unique_df = pd.DataFrame({
+            'Únicos': unique_vals,
+            '% Únicos': unique_percentage.round(2).astype(str) + '%'
+        })
+
+        # --- INTEGRACIÓN DE TODA LA INFORMACIÓN ---
+        full_df = pd.concat([nulls_df, column_dupes_df['Duplicados'], column_dupes_df['% Duplicados'], unique_df['Únicos'], unique_df['% Únicos']], axis=1)
+        full_df = full_df.rename(columns={
+            'Nulos': 'Nulos',
+            '% Nulos': '% Nulos',
+            'Duplicados': 'Duplicados',
+            '% Duplicados': '% Duplicados',
+            'Únicos': 'Únicos',
+            '% Únicos': '% Únicos'
+        })
+
+        print("\n🔍 Reporte Completo:")
+        print(full_df)
+
+        # --- MENSAJES DE INTERPRETACIÓN ---
+        print("\n📋 Resumen de interpretación:")
         
-        """
+        # Nulos
+        null_columns = nulls[nulls > 0]
+        if not null_columns.empty:
+            print(f"❗ Se encontraron {null_columns.shape[0]} columnas con valores nulos.")
+        else:
+            print("✅ Ninguna columna tiene valores nulos.")
+
+        # Duplicados
+        columnas_con_duplicados = [col for col, (dupes, _) in column_dupes.items() if dupes > 0]
+        num_col_duplicadas = len(columnas_con_duplicados)
+        total_columnas = len(self.df.columns)
+        pct_col_duplicadas = (num_col_duplicadas / total_columnas) * 100
+
+        if num_col_duplicadas > 0:
+            print(f"🔁 Se encontraron {num_col_duplicadas} columnas con valores duplicados ({pct_col_duplicadas:.2f}% del total).")
+        else:
+            print("✅ No se encontraron columnas con duplicados.")
+            
+        # Valores únicos
+        low_variability = unique_vals[unique_vals < 5]  # Columnas con muy pocos valores únicos
+        if not low_variability.empty:
+            print(f"⚠️ Las siguientes columnas tienen muy baja variabilidad: {', '.join(low_variability.index)}.")
+        else:
+            print("✅ Todas las columnas tienen suficiente variabilidad.")
+        
+        self.log("Reporte de Nulos, Duplicados y Cardinalidad generado con éxito.")
+        
+     
         # Nulos y Duplicados por fila
         print("\n📌 COMPROBACION DE VALORES NULOS Y DUPLICADOS POR FILA\n"+ "-"*40)
         self.df_nulls = self.df[self.df.isnull().any(axis=1)]
         self.df_dups = self.df[self.df.duplicated()]
         print(f"❗ {len(self.df_nulls)} filas con nulos | 🔁 {len(self.df_dups)} filas duplicadas")
         self.log("Valores nulos | duplicados por fila")
-        """
+        
         
     def detect_booleans(self):
         candidates = [col for col in self.df.columns if self.df[col].nunique() == 2]
@@ -196,24 +236,9 @@ class EDAHelper:
 
         stats_df = stats_df[columnas_ordenadas]
 
-        print("\n📈 Estadísticas básicas:")
+        print("\n📈 Estadísticas básicas para variables numericas:")
         print(stats_df.round(2))
-        """
-        print("\n🧠 Interpretaciones:")
-        for col in num_df.columns:
-            skew = num_df[col].skew()
-            if skew > 1:
-                print(f"🔸 {col} tiene una distribución sesgada positivamente (asimetría: {skew:.2f})")
-            elif skew < -1:
-                print(f"🔸 {col} tiene una distribución sesgada negativamente (asimetría: {skew:.2f})")
-            normality_p = stats_df.loc[col, 'Normalidad (p-valor)']
-            if not np.isnan(normality_p):
-                if normality_p > 0.05:
-                    print(f"✅ {col} parece seguir una distribución normal (p = {normality_p:.3f})")
-                else:
-                    print(f"❌ {col} NO sigue una distribución normal (p = {normality_p:.3f})")
-        self.log("Estadisticas Numericas detalladas generadas")
-        """
+        
         return stats_df.round(2)
         
     def numeric_distributions_separadas(self):
@@ -285,9 +310,75 @@ class EDAHelper:
     
     # --- FASE 3: Análisis Categórico ---
     def run_fase3_categoricas(self,max_categorias=15):
+        self.categorical_stats()
         self.categorical_distributions_separadas(max_categorias=max_categorias)
         self.print_logs()
+    
+    def categorical_stats(self):
+        """
+        Muestra métricas estadísticas clave para columnas categóricas:
+        - Recuento
+        - Nulos y %
+        - Valores únicos
+        - Moda
+        - Frecuencia de la moda
+        - Cardinalidad (% únicos respecto a total)
+        - Entropia
+        - Alerta cardinalidad
+        """
+        cat_df = self.df.select_dtypes(include=['object', 'category', 'bool', 'datetime'])
+        if cat_df.empty:
+            print("❌ No hay columnas categóricas en el DataFrame.")
+            return
+
+        total_rows = len(self.df)
+        resumen = []
+
+        for col in cat_df.columns:
+            datos = self.df[col]
+            nulos = datos.isnull().sum()
+            n_unique = datos.nunique(dropna=True)
+            moda = datos.mode().iloc[0] if not datos.mode().empty else None
+            frecuencia_moda = datos.value_counts(dropna=True).iloc[0] if not datos.value_counts().empty else None
+            
+            # % Moda
+            pct_moda = round(frecuencia_moda / datos.count() * 100, 2) if datos.count() > 0 else None
+
+            # Entropía (Shannon base 2) Para saber cuán dispersa está la variable
+            freq_dist = datos.value_counts(normalize=True, dropna=True)
+            entropia = round(entropy(freq_dist, base=2), 2) if not freq_dist.empty else None
+
+            # Alerta cardinalidad
+            cardinalidad_pct = round(n_unique / total_rows * 100, 2)
+            if n_unique == 0:
+                alerta_card = "Sin datos"
+            elif n_unique < 5:
+                alerta_card = "Muy baja cardinalidad"
+            elif n_unique > total_rows * 0.5:
+                alerta_card = "Alta cardinalidad"
+            else:
+                alerta_card = "Cardinalidad normal"
+            resumen.append({
+                'Columna': col,
+                'Recuento': datos.count(),
+                'Nulos': nulos,
+                '% Nulos': round(nulos / total_rows * 100, 2),
+                'Valores Únicos': n_unique,
+                'Cardinalidad %': round(n_unique / total_rows * 100, 2),
+                'Moda': moda,
+                'Frecuencia Moda': frecuencia_moda,
+                '% Moda': pct_moda,
+                'Entropía': entropia,
+                'Alerta Cardinalidad': alerta_card
+            })
+
+        resumen_df = pd.DataFrame(resumen)
+        print("\n📊 Métricas estadísticas para variables categóricas:")
+        print(resumen_df.to_string(index=False))
+        self.log("Tabla de métricas categóricas generada")
         
+        return resumen_df
+    
     def categorical_distributions_separadas(self, max_categorias=15):
         """
         Muestra gráficos individuales (barra + pastel) para cada columna categórica.
