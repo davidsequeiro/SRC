@@ -20,7 +20,7 @@ import plotly.express as px
 from datetime import datetime
 
 #Archivo auxiliar de Test estadisticos
-#from Class_Test import StatisticalTests
+from Class_Test import StatisticalTests
 
 #Libreria Estadisticas
 from scipy import stats
@@ -724,19 +724,41 @@ class EDAHelper:
         iqr = q3 - q1
         outliers = ((series < (q1 - 1.5 * iqr)) | (series > (q3 + 1.5 * iqr))).sum()
 
-        # Test de Shapiro-Wilk
+            # --- Tests de normalidad adaptados según tamaño de muestra ---
         if 3 <= len(series) <= 5000:
-            shapiro_stat, shapiro_p = stats.shapiro(series)
-        else:
-            shapiro_stat, shapiro_p = np.nan, np.nan
+            # Shapiro-Wilk para muestras pequeñas a medias
+            res_shapiro = StatisticalTests.shapiro_wilk_test(series)
+            normal_text = "✅ Distribución aproximadamente normal" if res_shapiro["result"] == "No rechazar H0" else "❌ No distribución normal"
+            shapiro_stat = res_shapiro["statistic"]
+            shapiro_p = res_shapiro["p_value"]
 
-        # Interpretaciones
+        elif len(series) > 5000:
+            # Para muestras grandes, usar KS y Anderson-Darling combinados
+            res_ks = StatisticalTests.kolmogorov_smirnov_test(series)
+            res_ad = StatisticalTests.anderson_darling_test(series)
+
+            normal_ks = res_ks["result"] == "No rechazar H0"
+            normal_ad = res_ad["result"] == "No rechazar H0"
+
+            if normal_ks and normal_ad:
+                normal_text = "✅ Distribución aproximadamente normal según KS y AD"
+            else:
+                normal_text = "❌ No distribución normal según KS y/o AD"
+
+            shapiro_stat = None
+            shapiro_p = None
+
+        else:
+            normal_text = "⚠️ No se pudo calcular el test de normalidad (menos de 3 datos)"
+            shapiro_stat = None
+            shapiro_p = None
+
+        # --- Interpretación de skewness y kurtosis ---
         skew_text = "sesgo positivo (cola derecha)" if skewness > 0.5 else "sesgo negativo (cola izquierda)" if skewness < -0.5 else "ligera asimetría"
         kurt_text = "leptocúrtica (picuda, colas largas)" if kurtosis > 3 else "platicúrtica (aplanada, colas cortas)" if kurtosis < 3 else "mesocúrtica"
-        normal_text = "✅ Distribución aproximadamente normal" if shapiro_p > 0.05 else "❌ No distribución normal"
 
-        # Output textual estructurado
-        print(f"\n🔍 Análisis univariante: columna '{column}'\n"+ "-"*60)
+        # --- Salida textual estructurada ---
+        print(f"\n🔍 Análisis univariante: columna '{column}'\n" + "-"*60)
         print("🧮 Resumen de métricas")
         print(f"- N (valores válidos): {valid_n} → Muestra {'amplia' if valid_n > 100 else 'pequeña'}")
         print(f"- N (nulos): {null_n} → {'Sin' if null_n == 0 else f'{round(100*null_n/total_n,1)}% de'} datos faltantes")
@@ -753,34 +775,42 @@ class EDAHelper:
         print(f"- IQR: {iqr:.2f}")
         print(f"- Outliers detectados: {outliers}")
 
-        print("\n🔬📈 Shapiro-Wilk – Test de normalidad")
-        if not np.isnan(shapiro_stat):
+        print("\n🔬📈 Test de normalidad")
+        if shapiro_stat is not None:
+            print(f"Shapiro-Wilk:")
             print(f"- Estadístico = {shapiro_stat:.3f}")
             print(f"- p = {shapiro_p:.5f} → {normal_text}")
+        elif len(series) > 5000:
+            print(f"Kolmogorov-Smirnov:")
+            print(f"- Estadístico = {res_ks['statistic']:.3f}")
+            print(f"- p = {res_ks['p_value']:.5f}")
+            print(f"Anderson-Darling:")
+            print(f"- Estadístico = {res_ad['statistic']:.3f}")
+            print(f"→ {normal_text}")
         else:
-            print("⚠️ No se pudo calcular el test de Shapiro (requiere entre 3 y 5000 datos).")
+            print(normal_text)
 
-        # Conclusión
+        # --- Conclusión ---
         print("\n💬 Conclusión:")
-        print(f"La variable '{column}' {normal_text.lower()}, muestra un {skew_text} y una forma {kurt_text}.")
+        print(f"La variable '{column}' {normal_text.lower()}, \nmuestra un {skew_text} y una forma {kurt_text}.")
         if outliers > 0:
             print(f"Hay presencia de outliers detectados por IQR (n={outliers}).")
 
-        # Interpretación integral
+        # --- Interpretación integral ---
         print("\n🧠 Interpretación integral")
         print(f"La variable '{column}' presenta una distribución {'asimétrica' if abs(skewness) > 0.5 else 'casi simétrica'},")
         print(f"lo que implica que los valores se concentran más en uno de los extremos del rango.")
         print(f"Además, su {kurt_text} indica que la forma de la distribución difiere de la normal en términos de concentración y colas.")
-        print("El test de normalidad confirma que no se ajusta a una distribución normal.\n")
+        print(f"El test de normalidad confirma que {normal_text.lower()}.\n")
 
-        # Por qué es importante
+        # --- Por qué es importante ---
         print("📌 ¿Por qué es importante?")
         print("El comportamiento de esta variable afecta directamente a la validez de los tests estadísticos que se puedan aplicar.")
         print("Si no es normal y presenta asimetría o curtosis alta, conviene evitar tests paramétricos que requieran normalidad.\n")
 
-        # Recomendaciones
+        # --- Recomendaciones ---
         print("✅ Recomendaciones")
-        if shapiro_p < 0.05:
+        if (shapiro_p is not None and shapiro_p < 0.05) or (len(series) > 5000 and normal_text.startswith("❌")):
             print("- Evitar usar tests paramétricos directamente con esta variable.")
             print("- Aplicar una transformación logarítmica o Box-Cox si se requiere normalidad.")
         else:
@@ -790,33 +820,15 @@ class EDAHelper:
             print("- Revisar y tratar los outliers si distorsionan el análisis.")
         print("- Visualizar la variable con histogramas, boxplots y Q-Q plots para una evaluación visual complementaria.")
 
-        # Crear histograma y KDE
-        hist_data = series
-        kde = gaussian_kde(hist_data)
-        x_vals = np.linspace(hist_data.min(), hist_data.max(), 500)
+        # --- Visualizaciones ---
+        kde = gaussian_kde(series)
+        x_vals = np.linspace(series.min(), series.max(), 500)
         kde_vals = kde(x_vals)
 
         fig1 = go.Figure()
-        fig1.add_trace(go.Histogram(
-            x=hist_data,
-            nbinsx=30,
-            name='Histograma',
-            marker_color='#1f77b4',
-            opacity=0.7
-        ))
-        fig1.add_trace(go.Scatter(
-            x=x_vals,
-            y=kde_vals * len(hist_data) * (x_vals[1] - x_vals[0]),  # Escalado
-            mode='lines',
-            name='KDE',
-            line=dict(color='#ff7f0e', width=2)
-        ))
-        fig1.update_layout(
-            title=f'📊 Histograma con KDE – {column}',
-            bargap=0.1,
-            yaxis_title='Frecuencia',
-            legend=dict(x=0.8, y=0.95)
-        )
+        fig1.add_trace(go.Histogram(x=series, nbinsx=30, name='Histograma', marker_color='#1f77b4', opacity=0.7))
+        fig1.add_trace(go.Scatter(x=x_vals, y=kde_vals * len(series) * (x_vals[1] - x_vals[0]), mode='lines', name='KDE', line=dict(color='#ff7f0e', width=2)))
+        fig1.update_layout(title=f'📊 Histograma con KDE – {column}', bargap=0.1, yaxis_title='Frecuencia', legend=dict(x=0.8, y=0.95))
         fig1.show()
 
         fig2 = go.Figure()
@@ -824,12 +836,11 @@ class EDAHelper:
         fig2.update_layout(title=f'📦 Boxplot interactivo – {column}')
         fig2.show()
 
-        # Q-Q Plot con statsmodels (estático)
         sm.qqplot(series, line='s')
         plt.title(f"Q-Q Plot – {column}")
         plt.show()
 
-        # Logging si usas sistema
+        # --- Logging ---
         if hasattr(self, "log"):
             self.log(f"Fase 7 completada: análisis univariante de '{column}'")
         
