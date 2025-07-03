@@ -753,6 +753,16 @@ class EDAHelper:
             shapiro_stat = None
             shapiro_p = None
 
+            # --- Tests adicionales univariantes ---
+        # Test de simetría (skewness)
+        res_skew = StatisticalTests.skewness_test(series)
+        # Test de curtosis (kurtosis)
+        res_kurt = StatisticalTests.kurtosis_test(series)
+        # Test de normalidad combinada D'Agostino K2
+        res_dago = StatisticalTests.dagostino_test(series)
+        # Test Jarque-Bera
+        res_jb = StatisticalTests.jarque_bera_test(series)
+
         # --- Interpretación de skewness y kurtosis ---
         skew_text = "sesgo positivo (cola derecha)" if skewness > 0.5 else "sesgo negativo (cola izquierda)" if skewness < -0.5 else "ligera asimetría"
         kurt_text = "leptocúrtica (picuda, colas largas)" if kurtosis > 3 else "platicúrtica (aplanada, colas cortas)" if kurtosis < 3 else "mesocúrtica"
@@ -775,6 +785,7 @@ class EDAHelper:
         print(f"- IQR: {iqr:.2f}")
         print(f"- Outliers detectados: {outliers}")
 
+        # Tests de normalidad
         print("\n🔬📈 Test de normalidad")
         if shapiro_stat is not None:
             print(f"Shapiro-Wilk:")
@@ -790,9 +801,16 @@ class EDAHelper:
         else:
             print(normal_text)
 
+        # Tests adicionales (skewness, kurtosis, D'Agostino, Jarque-Bera)
+        print("\n🔬📉 Tests adicionales")
+        print(f"- Test simetría: estadístico={res_skew['statistic']:.3f}, p={res_skew['p_value']:.5f} → {res_skew['result']}")
+        print(f"- Test curtosis: estadístico={res_kurt['statistic']:.3f}, p={res_kurt['p_value']:.5f} → {res_kurt['result']}")
+        print(f"- Test D'Agostino K²: estadístico={res_dago['statistic']:.3f}, p={res_dago['p_value']:.5f} → {res_dago['result']}")
+        print(f"- Test Jarque-Bera: estadístico={res_jb['statistic']:.3f}, p={res_jb['p_value']:.5f} → {res_jb['result']}")
+
         # --- Conclusión ---
         print("\n💬 Conclusión:")
-        print(f"La variable '{column}' {normal_text.lower()}, \nmuestra un {skew_text} y una forma {kurt_text}.")
+        print(f"La variable '{column}' {normal_text.lower()}, muestra un {skew_text} y una forma {kurt_text}.")
         if outliers > 0:
             print(f"Hay presencia de outliers detectados por IQR (n={outliers}).")
 
@@ -842,21 +860,7 @@ class EDAHelper:
 
         # --- Logging ---
         if hasattr(self, "log"):
-            self.log(f"Fase 7 completada: análisis univariante de '{column}'")
-        
-        
-    # --- FASE Test: Análisis Bivariante con Tests y Visualización ---
-    def run_fase_test_bivariante(self):
-        self.show_column_indices()
-        #self.suggest_column_pairs()
-        self.test_bivariante()
-        self.log("Análisis bivariante completado")
-
-    def show_column_indices(self):
-        print("\n📜 ÍNDICES DE COLUMNAS DISPONIBLES")
-        for i, col in enumerate(self.df.columns):
-            print(f"[{i}] {col} — tipo: {self.df[col].dtype}")
-        print("- -"*30) 
+            self.log(f"Fase 7 completada: análisis univariante de '{column}'") 
     """
     def suggest_column_pairs(self):
         print("\n📌 SUGERENCIAS DE VARIABLES BIVARIANTES\n" + "-"*40)

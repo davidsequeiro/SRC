@@ -7,7 +7,7 @@ from scipy.stats import (
     pearsonr, spearmanr, kendalltau,
     ttest_ind, mannwhitneyu, f_oneway,
     levene, chi2_contingency, fisher_exact,
-    kruskal, wilcoxon, bartlett
+    kruskal, wilcoxon, bartlett, skewtest, kurtosistest, normaltest, jarque_bera
 )
 from statsmodels.stats.oneway import anova_oneway
 import statsmodels.api as sm
@@ -127,6 +127,64 @@ class StatisticalTests:
             "recommendation": "Considerar tests no paramétricos si se rechaza H0"
         }
         return res
+    
+    # ... otros métodos ...
+
+    @staticmethod
+    def skewness_test(data, alpha=0.05):
+        stat, p = skewtest(data)
+        reject = p < alpha
+        result = "Asimetría significativa" if reject else "No asimetría significativa"
+        return {
+            "test_name": "Test de simetría",
+            "statistic": stat,
+            "p_value": p,
+            "result": result,
+            "conclusion": "",
+            "recommendation": ""
+        }
+
+    @staticmethod
+    def kurtosis_test(data, alpha=0.05):
+        stat, p = kurtosistest(data)
+        reject = p < alpha
+        result = "Curtosis significativa" if reject else "No curtosis significativa"
+        return {
+            "test_name": "Test de curtosis",
+            "statistic": stat,
+            "p_value": p,
+            "result": result,
+            "conclusion": "",
+            "recommendation": ""
+        }
+
+    @staticmethod
+    def dagostino_test(data, alpha=0.05):
+        stat, p = normaltest(data)
+        reject = p < alpha
+        result = "No normal según D'Agostino K²" if reject else "Normal según D'Agostino K²"
+        return {
+            "test_name": "D'Agostino K² Test",
+            "statistic": stat,
+            "p_value": p,
+            "result": result,
+            "conclusion": "",
+            "recommendation": ""
+        }
+
+    @staticmethod
+    def jarque_bera_test(data, alpha=0.05):
+        stat, p = jarque_bera(data)
+        reject = p < alpha
+        result = "No normal según Jarque-Bera" if reject else "Normal según Jarque-Bera"
+        return {
+            "test_name": "Jarque-Bera Test",
+            "statistic": stat,
+            "p_value": p,
+            "result": result,
+            "conclusion": "",
+            "recommendation": ""
+        }
 
     # --------------------------
     # TESTS DE CORRELACIÓN (BIVARIANTE)
