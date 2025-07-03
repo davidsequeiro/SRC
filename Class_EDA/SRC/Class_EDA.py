@@ -2,7 +2,7 @@
 
 # EDAHelper: Exploración de Datos Automatizada y Modular
 import os
-#import warnings
+from IPython.display import display, HTML
 
 # Librerias ETL
 import pandas as pd
@@ -955,7 +955,7 @@ class EDAHelper:
             "Coef. Pearson r": round(res['statistic'], 3),
             "Recomendación": res['recommendation']
         }])
-        display(resumen_df(index=False))
+        display(HTML(resumen_df.to_html(index=False)))
 
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
@@ -1053,7 +1053,7 @@ class EDAHelper:
             resumen_data["Test alternativo"] = res_nonparam['test_name']
             resumen_data["p-alt"] = round(res_nonparam['p_value'], 4)
         resumen_df = pd.DataFrame([resumen_data])
-        display(resumen_df(index=False))
+        display(HTML(resumen_df.to_html(index=False)))
 
         
         # Outliers por grupo
@@ -1117,7 +1117,7 @@ class EDAHelper:
             "Tamaño del efecto": round(cramers_v, 3),
             "Recomendación": chi2_res['recommendation']
         }])
-        display(resumen_df(index=False))
+        display(HTML(resumen_df.to_html(index=False)))
 
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
