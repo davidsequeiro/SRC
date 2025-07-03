@@ -1071,16 +1071,21 @@ class EDAHelper:
             resumen_data["p-alt"] = round(res_nonparam['p_value'], 4)
         resumen_df = pd.DataFrame([resumen_data])
         display(HTML(resumen_df.to_html(index=False)))
-
+        display(Markdown("---"))
         
         # Outliers por grupo
-        print("\n🔎 Outliers por grupo (basado en IQR):")
+        print("\n🔎 Outliers por grupo (basado en IQR) *⚠️-> Proporción alta. Puede distorsionar los resultados.):\n"+ "-"*40)
         for grupo, datos in grupos_filtrados.items():
             q1 = np.percentile(datos, 25)
             q3 = np.percentile(datos, 75)
             iqr = q3 - q1
-            outliers = [x for x in datos if x < q1 - 1.5 * iqr or x > q3 + 1.5 * iqr]
-            print(f"- {grupo}: {len(outliers)} outliers")
+            g_outliers = [x for x in datos if x < q1 - 1.5 * iqr or x > q3 + 1.5 * iqr]
+            porcentaje = (len(g_outliers) / len(datos)) * 100
+            if porcentaje > 10:
+                print(f"- {grupo}: {len(g_outliers)} outliers ({porcentaje:.1f}%)⚠️")
+            else:
+                print(f"- {grupo}: {len(g_outliers)} outliers ({porcentaje:.1f}%)")    
+
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{cat_col}' y '{num_col}'")
     
