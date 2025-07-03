@@ -23,14 +23,12 @@ from datetime import datetime
 from Class_Test import StatisticalTests
 
 #Libreria Estadisticas
-"""
 from scipy import stats
 from scipy.stats import gaussian_kde
 from scipy.stats import gaussian_kde, entropy, chi2_contingency, ttest_ind, mannwhitneyu, f_oneway, levene, shapiro, pearsonr, spearmanr, iqr, chi2_contingency
 from itertools import zip_longest
 from statsmodels.stats.oneway import anova_oneway
 import statsmodels.api as sm
-"""
 
 
 
