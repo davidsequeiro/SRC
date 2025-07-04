@@ -66,8 +66,6 @@ Una clase modular con **métodos estáticos** para aplicar más de 25 tests esta
 
 ---
 
-## 🧠 ¿Cómo se usa?
-
 ## 🧠 ¿Cómo usar este módulo?
 
 Todos los métodos están pensados para:
@@ -101,3 +99,8 @@ Este módulo requiere las siguientes librerías de Python:
 ```bash
 pip install numpy pandas scipy statsmodels
 ```
+
+## 🛠️ Autor y Licencia
+
+Creado por David Sequeiro, usando ChatGPT, como parte de un repositorio de herramientas estadísticas y analíticas en Python.
+Distribuido bajo licencia MIT — libre para uso, modificación y distribución.
