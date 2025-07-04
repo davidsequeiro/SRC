@@ -52,7 +52,7 @@ EDA/
 
 Asegúrate de tener las siguientes librerías instaladas:
 
-```bash
+```batch
 pip install pandas numpy scipy statsmodels plotly openpyxl
 ```
 
