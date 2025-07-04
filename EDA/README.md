@@ -11,11 +11,11 @@ Este módulo contiene **herramientas interactivas y automáticas** para realizar
 ```
 EDA/
 │
-├── data/ # 📂 Archivos de datos a analizar (CSV, Excel, Parquet...)
-├── document/ # 📓 Jupyter Notebooks con teoría y análisis
+├── Data/ # 📂 Archivos de datos a analizar (CSV, Excel, Parquet...)
+├── Document/ # 📓 Jupyter Notebooks con teoría y análisis
 │ ├── doc-auxiliar.ipynb # Resumen teórico de estadística descriptiva y exploratoria
 │ └── plantilla-eda.ipynb # Notebook principal para ejecutar el análisis
-├── src/ # 🧠 Código fuente (clases en Python)
+├── SRC/ # 🧠 Código fuente (clases en Python)
 │ ├── Class_EDA.py # Clase principal: EDAHelper
 │ └── Class_Test.py # Copia auxiliar de clase de tests estadísticos
 └── requirements.txt # 📦 Librerías necesarias
