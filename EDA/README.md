@@ -60,7 +60,7 @@ pip install pandas numpy scipy statsmodels plotly openpyxl
 
 Abre el archivo plantilla-eda.ipynb en Jupyter Notebook.
 
-Asegúrate de tener tus datos en la carpeta data/.
+Asegúrate de tener tus datos en la carpeta Data/.
 
 Ejecuta las celdas paso a paso para realizar todo el análisis.
 
@@ -68,7 +68,7 @@ Personaliza las fases según tus necesidades.
 
 ## 🧩 Integración con otros módulos
 
-Este módulo está pensado para integrarse con el archivo Class_Test.py, que contiene todos los tests estadísticos utilizados por EDAHelper.
+Este módulo está pensado para integrarse con el archivo Class_Test.py, que contiene todos los tests estadísticos utilizados por Class_EDA.
 
 También puede ampliarse para incluir:
 
