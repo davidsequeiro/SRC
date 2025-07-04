@@ -384,7 +384,7 @@ class EDAHelper:
 
         resumen_df = pd.DataFrame(resumen)
         print("\n📊 Métricas estadísticas para variables categóricas:")
-        print(resumen_df.to_string(index=False))
+        print(resumen_df.to_string(index=False, formatters={'Columna': '{{:<{}}}'.format(resumen_df['Columna'].str.len().max()).format}))
         self.log("Tabla de métricas categóricas generada")
         
         return resumen_df
