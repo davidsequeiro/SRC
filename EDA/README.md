@@ -80,7 +80,7 @@ También puede ampliarse para incluir:
 
 ## 🛠️ Autor y Licencia
 
-Creado por David Sequeiro mediante ChatGPT
+Creado por David Sequeiro usando ChatGPT
 Licencia MIT — puedes usarlo, modificarlo y distribuirlo libremente.
 
 🙌 Proyecto creado con fines formativos, de análisis y de divulgación estadística aplicada a Python.
