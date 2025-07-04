@@ -1144,7 +1144,126 @@ class EDAHelper:
         if hasattr(self, "log"):
             self.log(f"Completado Análisis Bivariante de '{col_x}' y '{col_y}'")
 
+    
+    def run_fase_test_ab(self):
+        #self.show_column_all()
+        self.test_ab_hypothesis()  
+        self.print_logs()
+    
+    
+    def test_ab_hypothesis(self):
+        print("\n🧪 TEST DE HIPÓTESIS A/B PERSONALIZADO")
 
+        # Selección de columnas
+        col_x, col_y = self.show_column_all()
+        if col_x is None or col_y is None:
+            print("❌ Selección inválida.")
+            return
+
+        # Introducción de hipótesis
+        print("\n📋 Introduce tus hipótesis")
+        h0 = input("Hipótesis nula (H₀): ")
+        h1 = input("Hipótesis alternativa (H₁): ")
+        alpha = input("Nivel de significación (por defecto 0.05): ")
+        try:
+            alpha = float(alpha)
+        except:
+            alpha = 0.05
+
+        # Preparar datos
+        data = self.df[[col_x, col_y]].dropna()
+        tipo_x = self.df[col_x].dtype
+        tipo_y = self.df[col_y].dtype
+        test_result = None
+        nonparam = None
+        grafico = None
+
+        # Categórica vs Numérica
+        if tipo_x in ['object', 'category', 'bool'] and np.issubdtype(tipo_y, np.number):
+            grupos = data.groupby(col_x)[col_y].apply(list)
+            grupos_validos = [g for g in grupos if len(g) >= 2]
+
+            if len(grupos_validos) != 2:
+                print("❌ Se requieren exactamente 2 grupos con datos suficientes.")
+                return
+
+            g1, g2 = grupos_validos[0], grupos_validos[1]
+            res_levene = StatisticalTests.levene_test(g1, g2)
+            equal_var = res_levene['p_value'] > 0.05
+            test_result = StatisticalTests.ttest_independent(g1, g2, equal_var=equal_var)
+
+            if test_result['p_value'] > alpha:
+                nonparam = StatisticalTests.mann_whitney_u_test(g1, g2)
+
+            grafico = px.box(data, x=col_x, y=col_y, points="all", color=col_x,
+                            color_discrete_sequence=px.colors.qualitative.Set2,
+                            title=f"{col_y} por grupos de {col_x}")
+
+        # Numérica vs Numérica
+        elif np.issubdtype(tipo_x, np.number) and np.issubdtype(tipo_y, np.number):
+            test_result = StatisticalTests.pearson_correlation(data[col_x], data[col_y])
+            if test_result['p_value'] > alpha:
+                nonparam = StatisticalTests.spearman_correlation(data[col_x], data[col_y])
+
+            grafico = px.scatter(data, x=col_x, y=col_y, trendline="ols",
+                                title=f"Relación entre {col_x} y {col_y}",
+                                color_discrete_sequence=["#636EFA"])
+
+        # Categórica vs Categórica
+        elif tipo_x in ['object', 'category', 'bool'] and tipo_y in ['object', 'category', 'bool']:
+            table = pd.crosstab(data[col_x], data[col_y])
+            if table.shape == (2, 2):
+                test_result = StatisticalTests.fisher_exact_test(table)
+            else:
+                test_result = StatisticalTests.chi2_test(table)
+
+            grafico = px.imshow(table, text_auto=True, aspect="auto",
+                                title=f"Tabla de contingencia: {col_x} vs {col_y}",
+                                color_continuous_scale="Blues")
+
+        else:
+            print("❌ Combinación de tipos no soportada.")
+            return
+
+        # Resultados
+        print("\n📊 RESULTADO DEL TEST DE HIPÓTESIS")
+        print(f"H₀: {h0}")
+        print(f"H₁: {h1}")
+        print(f"α = {alpha}")
+        print(f"\n→ {test_result['test_name']}: p = {test_result['p_value']:.4f}")
+        print("🔍 Conclusión:", test_result["conclusion"])
+        if test_result['p_value'] < alpha:
+            print("✅ Rechazamos H₀ → Aceptamos H₁.")
+        else:
+            print("❌ No hay evidencia suficiente para rechazar H₀.")
+
+        if nonparam:
+            print(f"\n🔁 Test no paramétrico (validación):")
+            print(f"→ {nonparam['test_name']}: p = {nonparam['p_value']:.4f}")
+            print("Conclusión:", nonparam['conclusion'])
+
+        # Tabla resumen
+        resumen_data = {
+            "Test aplicado": test_result['test_name'],
+            "p-valor": round(test_result['p_value'], 4),
+            "Significativo": "✅" if test_result['p_value'] < alpha else "❌",
+            "Recomendación": test_result.get("recommendation", ""),
+            "Conclusión": test_result["conclusion"]
+        }
+        if nonparam:
+            resumen_data["Test alternativo"] = nonparam['test_name']
+            resumen_data["p-alt"] = round(nonparam['p_value'], 4)
+
+        resumen_df = pd.DataFrame([resumen_data])
+        display(HTML(resumen_df.to_html(index=False)))
+
+        # Mostrar gráfico
+        if grafico:
+            grafico.show()
+
+        # Logging
+        if hasattr(self, "log"):
+            self.log(f"Test de hipótesis A/B entre '{col_x}' y '{col_y}' completado.")
 """    
 Siguientes mejoras recomendadas:
 0. poder analizar dos columnas ( por ejemplo -> ventas por marca)
