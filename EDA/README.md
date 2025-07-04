@@ -1,4 +1,4 @@
-# 📊 EDAHelper — Análisis Exploratorio Automatizado en Python
+# 📊 EDA — Análisis Exploratorio Automatizado en Python
 
 Este módulo contiene **herramientas interactivas y automáticas** para realizar análisis exploratorio de datos (EDA) de forma detallada, estructurada y explicativa.
 

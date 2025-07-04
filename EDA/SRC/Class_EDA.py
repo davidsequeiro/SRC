@@ -1,5 +1,3 @@
-# eda_helper.py
-
 # EDAHelper: Exploración de Datos Automatizada y Modular
 import os
 from IPython.display import display, HTML
