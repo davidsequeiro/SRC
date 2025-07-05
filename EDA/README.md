@@ -19,6 +19,7 @@ EDA/
 │ ├── Class_EDA.py # Clase principal: EDAHelper
 │ └── Class_Test.py # Copia auxiliar de clase de tests estadísticos
 └── requirements.txt # 📦 Librerías necesarias
+└── environment.yml # 📦 Librerías necesarias (Conda)
 ```
 
 ---
@@ -53,7 +54,7 @@ EDA/
 Asegúrate de tener las siguientes librerías instaladas:
 
 ```batch
-pip install pandas numpy scipy statsmodels plotly openpyxl
+pip install numpy pandas matplotlib seaborn scipy plotly statsmodels ipykernel openpyxl nbformat
 ```
 
 ## ⚙️ Cómo usarlo
