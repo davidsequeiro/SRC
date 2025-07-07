@@ -411,3 +411,14 @@ class StatisticalTests:
         res["recommendation"] = "Test no paramétrico para comparar distribuciones"
         return res
 
+     @staticmethod
+    def one_sample_t_test(sample, popmean, alpha=0.05):
+        """
+        Test t de una muestra para comparar la media con un valor conocido.
+        """
+        from scipy.stats import ttest_1samp
+        stat, p = ttest_1samp(sample, popmean)
+        res = StatisticalTests._format_result("t-test una muestra", stat, p, alpha)
+        res["conclusion"] = "La media difiere significativamente del valor esperado" if res["result"] == "Rechazar H0" else "La media no difiere significativamente del valor esperado"
+        res["recommendation"] = "Útil para contrastar medias frente a un valor de referencia"
+        return res

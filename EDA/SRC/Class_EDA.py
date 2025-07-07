@@ -1262,6 +1262,46 @@ class EDAHelper:
         # Logging
         if hasattr(self, "log"):
             self.log(f"Test de hipótesis A/B entre '{col_x}' y '{col_y}' completado.")
+            
+    # test de una muestra (one-sample t-test)
+    def run_fase_test_one_sample(self):
+        self.show_column_number()  # Pide seleccionar columna y la guarda en self.columna_univariante_seleccionada
+        if not self.columna_univariante_seleccionada:
+            print("❌ No se ha seleccionado una columna válida, cancelando test.")
+            return
+
+        # Pedir valor esperado
+        try:
+            valor_esperado = float(input(f"Introduce el valor esperado para la media de '{self.columna_univariante_seleccionada}': "))
+        except ValueError:
+            print("❌ Valor esperado inválido.")
+            return
+
+        # Pedir alpha (opcional)
+        alpha = input("Nivel de significación (por defecto 0.05): ")
+        try:
+            alpha = float(alpha)
+        except ValueError:
+            alpha = 0.05
+
+        # Llamar al test pasando los parámetros recogidos
+        self.test_media_vs_valor(self.columna_univariante_seleccionada, valor_esperado, alpha)
+
+    def test_media_vs_valor(self, col_name, valor_esperado, alpha=0.05):
+        """
+        Realiza un test t de una muestra comparando la media de la columna con un valor dado.
+        """
+
+        datos = self.df[col_name].dropna()
+        resultado = StatisticalTests.one_sample_t_test(datos, popmean=valor_esperado, alpha=alpha)
+
+        print(f"\n📊 Test t de una muestra para la columna '{col_name}' con valor esperado = {valor_esperado}")
+        print(f"Estadístico t = {resultado['statistic']:.4f}")
+        print(f"p-valor = {resultado['p_value']:.4f}")
+        print(f"Resultado: {resultado['result']} → {resultado['conclusion']}")
+        print(f"🧠 Recomendación: {resultado['recommendation']}")
+
+        self.log(f"Test una muestra sobre '{col_name}' vs {valor_esperado} ejecutado")
 """    
 Siguientes mejoras recomendadas:
 0. poder analizar dos columnas ( por ejemplo -> ventas por marca)
