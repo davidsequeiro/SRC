@@ -59,6 +59,11 @@ pip install numpy pandas matplotlib seaborn scipy plotly statsmodels ipykernel o
 
 ## ⚙️ Cómo usarlo
 
+1.- Clona el repositorio
+2.- Añade el dataset que quieres analizar a la carpeta Data
+3.- Introduce el nombre.extension del dataset en el sitio indicado del Jupyter.
+4.- Ejecuta el análisis
+
 Abre el archivo plantilla-eda.ipynb en Jupyter Notebook.
 
 Asegúrate de tener tus datos en la carpeta Data/.

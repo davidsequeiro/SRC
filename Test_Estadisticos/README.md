@@ -68,11 +68,6 @@ Una clase modular con **métodos estáticos** para aplicar más de 25 tests esta
 
 ## 🧠 ¿Cómo usar este módulo?
 
-1.- Clona el repositorio
-2.- Añade el dataset que quieres analizar a la carpeta Data
-3.- Introduce el nombre.extension del dataset en el sitio indicado del Jupyter.
-4.- Ejecuta el análisis
-
 Todos los métodos están pensados para:
 
 - 🧪 Ser usados directamente en **Jupyter Notebook**, scripts `.py`, clases personalizadas o pipelines de análisis.
