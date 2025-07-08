@@ -1,3 +1,16 @@
+# eda_helper.py
+# Crear entorno virtual en terminal
+#py -3.11 -m venv venv311
+# Activar entorno virtual 
+#.\venv311\Scripts\activate
+#actualizar pip
+#python.exe -m pip install --upgrade pip
+#instalar librerias
+#pip install numpy pandas matplotlib seaborn plotly statsmodels scipy ipykernel
+#renombrar entorno virtual
+#python -m ipykernel install --user --name=eda311 --display-name "Python (EDA 3.11)"
+
+
 # EDAHelper: Exploración de Datos Automatizada y Modular
 import os
 from IPython.display import display, HTML
@@ -1262,8 +1275,8 @@ class EDAHelper:
         # Logging
         if hasattr(self, "log"):
             self.log(f"Test de hipótesis A/B entre '{col_x}' y '{col_y}' completado.")
-            
-    # test de una muestra (one-sample t-test)
+
+    # test de una muestra (one-sample)
     def run_fase_test_one_sample(self):
         self.show_column_number()  # Pide seleccionar columna y la guarda en self.columna_univariante_seleccionada
         if not self.columna_univariante_seleccionada:
@@ -1272,11 +1285,12 @@ class EDAHelper:
 
         # Pedir valor esperado
         try:
-            valor_esperado = float(input(f"Introduce el valor esperado para la media de '{self.columna_univariante_seleccionada}': "))
+            valor_media = float(input(f"Introduce el valor esperado para la MEDIA de '{self.columna_univariante_seleccionada}' (t-test): "))
+            valor_mediana = float(input(f"Introduce el valor esperado para la MEDIANA de '{self.columna_univariante_seleccionada}' (Wilcoxon): "))
         except ValueError:
             print("❌ Valor esperado inválido.")
             return
-
+            
         # Pedir alpha (opcional)
         alpha = input("Nivel de significación (por defecto 0.05): ")
         try:
@@ -1285,23 +1299,34 @@ class EDAHelper:
             alpha = 0.05
 
         # Llamar al test pasando los parámetros recogidos
-        self.test_media_vs_valor(self.columna_univariante_seleccionada, valor_esperado, alpha)
+        self.test_ab_one_sample(self.columna_univariante_seleccionada,valor_media, valor_mediana, alpha)
 
-    def test_media_vs_valor(self, col_name, valor_esperado, alpha=0.05):
+    def test_ab_one_sample(self, col_name, valor_media,valor_mediana, alpha=0.05):
         """
-        Realiza un test t de una muestra comparando la media de la columna con un valor dado.
+        Realiza dos pruebas estadísticas sobre una muestra:
+        - t-test para comparar la media con un valor teórico
+        - Wilcoxon Signed-Rank test para comparar la mediana con un valor teórico
         """
-
+        
         datos = self.df[col_name].dropna()
-        resultado = StatisticalTests.one_sample_t_test(datos, popmean=valor_esperado, alpha=alpha)
+        
+        # t-test (media)
+        resultado_t = StatisticalTests.t_test_one_sample(datos, valor_media, alpha=alpha)
+        print(f"\n📊 Test t de una muestra para la columna '{col_name}' con valor esperado = {valor_media} (media)")
+        print(f"Estadístico t = {resultado_t['statistic']:.4f}")
+        print(f"p-valor = {resultado_t['p_value']:.4f}")
+        print(f"Resultado: {resultado_t['result']} → {resultado_t['conclusion']}")
+        print(f"🧠 Recomendación: {resultado_t['recommendation']}")
 
-        print(f"\n📊 Test t de una muestra para la columna '{col_name}' con valor esperado = {valor_esperado}")
-        print(f"Estadístico t = {resultado['statistic']:.4f}")
-        print(f"p-valor = {resultado['p_value']:.4f}")
-        print(f"Resultado: {resultado['result']} → {resultado['conclusion']}")
-        print(f"🧠 Recomendación: {resultado['recommendation']}")
-
-        self.log(f"Test una muestra sobre '{col_name}' vs {valor_esperado} ejecutado")
+        # Wilcoxon (mediana)
+        resultado_w = StatisticalTests.wilcoxon_one_sample(datos, valor_mediana, alpha=alpha)
+        print(f"\n📊 Wilcoxon de una muestra para la columna'{col_name}' con valor esperado =  {valor_mediana} (mediana) ")
+        print(f"Estadístico W = {resultado_w['statistic']:.4f}")
+        print(f"p-valor = {resultado_w['p_value']:.4f}")
+        print(f"Resultado: {resultado_w['result']} → {resultado_w['conclusion']}")
+        print(f"🧠 Recomendación: {resultado_w['recommendation']}")
+        
+        self.log(f"Test t y Wilcoxon ejecutados sobre '{col_name}'")
 """    
 Siguientes mejoras recomendadas:
 0. poder analizar dos columnas ( por ejemplo -> ventas por marca)

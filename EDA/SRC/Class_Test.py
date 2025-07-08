@@ -59,6 +59,10 @@ Categorías de tests incluidos:
     - skewtest: Test para simetría de la distribución.
     - kurtosistest: Test para curtosis (apuntamiento de la distribución).
 
+8. Test one sample:
+    - t_test_one_sample: Comparar media con valor dado
+    - wilcoxon_one_sample: Comparar mediana con valor dado
+
 Uso:
     - Los métodos se llaman como métodos estáticos, pasando los datos adecuados.
     - Cada método retorna un diccionario con claves:
@@ -411,14 +415,28 @@ class StatisticalTests:
         res["recommendation"] = "Test no paramétrico para comparar distribuciones"
         return res
 
-     @staticmethod
-    def one_sample_t_test(sample, popmean, alpha=0.05):
+    # Test de hipotesis para una muestra
+    @staticmethod
+    def t_test_one_sample(data, valor_esperado=0, alpha=0.05):
         """
         Test t de una muestra para comparar la media con un valor conocido.
         """
         from scipy.stats import ttest_1samp
-        stat, p = ttest_1samp(sample, popmean)
+        stat, p = ttest_1samp(data, valor_esperado)
         res = StatisticalTests._format_result("t-test una muestra", stat, p, alpha)
         res["conclusion"] = "La media difiere significativamente del valor esperado" if res["result"] == "Rechazar H0" else "La media no difiere significativamente del valor esperado"
         res["recommendation"] = "Útil para contrastar medias frente a un valor de referencia"
+        return res
+    
+    @staticmethod
+    def wilcoxon_one_sample(data, valor_esperado=0, alpha=0.05):
+        """
+        Test de Wilcoxon Signed-Rank para una muestra.
+        Compara si la mediana de los datos difiere de un valor esperado.
+        """
+        from scipy.stats import wilcoxon
+        stat, p = wilcoxon(data - valor_esperado)
+        res = StatisticalTests._format_result("Wilcoxon una muestra", stat, p, alpha)
+        res["conclusion"] = "La mediana difiere significativamente del valor esperado" if res["result"] == "Rechazar H0" else "No hay evidencia suficiente para afirmar que la mediana difiere del valor esperado"
+        res["recommendation"] = "Usar cuando los datos no sean normales o contengan outliers"
         return res
