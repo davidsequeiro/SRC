@@ -67,13 +67,15 @@ class EDAHelper:
         extension = os.path.splitext(self.file_path)[1].lower()
         try:
             if extension == '.csv':
-                self.df = pd.read_csv(self.file_path)
+                self.df_load = pd.read_csv(self.file_path)
             elif extension == '.parquet':
-                self.df = pd.read_parquet(self.file_path)
+                self.df_load  = pd.read_parquet(self.file_path)
             elif extension in ['.xls', '.xlsx']:
-                self.df = pd.read_excel(self.file_path)
+                self.df_load  = pd.read_excel(self.file_path)
             else:
                 raise ValueError(f"Extensión no soportada: {extension}")
+            self.df_raw = self.df_load.copy(deep=True)
+            self.df = self.df_load.copy(deep=True)
             print(f"✅ Archivo cargado correctamente: {extension}")
         except Exception as e:
             print(f"❌ Error al cargar archivo: {e}")
