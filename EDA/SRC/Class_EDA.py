@@ -67,11 +67,11 @@ class EDAHelper:
         extension = os.path.splitext(self.file_path)[1].lower()
         try:
             if extension == '.csv':
-                self.df_load = pd.read_csv(self.file_path)
+                self.df_load = pd.read_csv(self.file_path, index_col=0)
             elif extension == '.parquet':
-                self.df_load  = pd.read_parquet(self.file_path)
+                self.df_load  = pd.read_parquet(self.file_path, index_col=0)
             elif extension in ['.xls', '.xlsx']:
-                self.df_load  = pd.read_excel(self.file_path)
+                self.df_load  = pd.read_excel(self.file_path,  index_col=0)
             else:
                 raise ValueError(f"Extensión no soportada: {extension}")
             self.df_raw = self.df_load.copy(deep=True)
