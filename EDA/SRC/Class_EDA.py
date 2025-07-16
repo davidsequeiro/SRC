@@ -88,7 +88,7 @@ class EDAHelper:
         
     def format_column_names(self):
         print("📌 FORMATEAR TITULOS COLUMNAS\n"+ "-"*40)
-        self.df.columns = [col.strip().lower().replace(" ", "_").capitalize() for col in self.df.columns]
+        self.df.columns = [col.strip().lower().title().replace(" ", "_") for col in self.df.columns]
         self.log("Titulos Columnas formateadas correctamente")
         
     def show_dataframe(self):
