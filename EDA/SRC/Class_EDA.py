@@ -358,6 +358,11 @@ class EDAHelper:
 
         total_rows = len(self.df)
         resumen = []
+        
+        
+        for col in cat_df.columns:
+            print(cat_df[col].value_counts())
+        display(Markdown("---"))
 
         for col in cat_df.columns:
             datos = self.df[col]
